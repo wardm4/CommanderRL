@@ -128,6 +128,9 @@ def draw_game():
 	for b in building_list:
 		b.draw()
 
+	for a in ally_list:
+		a.draw()
+
 	PLAYER.draw()
 	draw_stats(SURFACE_MAIN)
 	if INFORMATION.which_menu == 0:
@@ -190,12 +193,15 @@ def draw_purchases(display_surface):
 	ren = constants.STATS_FONT.render("Buy:", 0, constants.COLOR_WHITE)
 	display_surface.blit(ren, (constants.GAME_WIDTH + 10, 180))
 
-	if mouse[0] > constants.GAME_WIDTH + 10 and mouse[0] < (constants.GAME_WIDTH + 300) and mouse[1] > 210 and mouse[1] < 235:
-		pygame.draw.rect(display_surface, constants.COLOR_GREY,
-			(constants.GAME_WIDTH + 10, 210, 300, 25))
+	for i in range(2):
+		if is_menu_item(mouse[0], mouse[1], i):
+			pygame.draw.rect(display_surface, constants.COLOR_GREY, (constants.GAME_WIDTH + 10, 210 + 25*i, 300, 25))
 
-	ren = constants.STATS_FONT.render("1. Worker  (2C, 1G)", 0, constants.COLOR_WHITE)
+	ren = constants.STATS_FONT.render("1. Worker  (2C, 1F)", 0, constants.COLOR_WHITE)
 	display_surface.blit(ren, (constants.GAME_WIDTH + 10, 210))
+
+	ren = constants.STATS_FONT.render("2. Blob  (2C, 1D)", 0, constants.COLOR_WHITE)
+	display_surface.blit(ren, (constants.GAME_WIDTH + 10, 235))
 
 
 def draw_actions(display_surface):
@@ -272,6 +278,7 @@ def mining_resources():
 		if building_list[i].mine == "diamond":
 			available_resources[2] += 1
 
+	available_resources[0] -= len(ally_list)
 	INFORMATION.res_list = available_resources
 
 def update_resources():
@@ -282,7 +289,7 @@ def update_resources():
 def game_initialize():
 	'''Initializes the main window'''
 
-	global SURFACE_MAIN, GAME_MAP, PLAYER, INFORMATION, FOV_CALCULATE, building_list
+	global SURFACE_MAIN, GAME_MAP, PLAYER, INFORMATION, FOV_CALCULATE, building_list, ally_list
 
 	pygame.init()
 
@@ -295,6 +302,8 @@ def game_initialize():
 	PLAYER = Actor(1, 1, constants.S_PLAYER)
 
 	building_list = []
+
+	ally_list = []
 
 	INFORMATION = Information()
 
@@ -329,6 +338,9 @@ def game_handle_keys():
 			elif event.key == pygame.K_1:
 				if buy_worker():
 					return "Action"
+			elif event.key == pygame.K_2:
+				if buy_blob():
+					return "Action"
 			elif event.key == pygame.K_m:
 				if mine():
 					return "Action"
@@ -339,6 +351,10 @@ def game_handle_keys():
 
 		if is_menu_item(mouse[0], mouse[1], 0) and leftclick and INFORMATION.which_menu == 0:
 			if buy_worker():
+				return "Action"
+
+		if is_menu_item(mouse[0], mouse[1], 1) and leftclick and INFORMATION.which_menu == 0:
+			if buy_blob():
 				return "Action"
 
 		if is_menu_item(mouse[0], mouse[1], 0) and leftclick and INFORMATION.which_menu == 1:
@@ -360,6 +376,16 @@ def buy_worker():
 		INFORMATION.workers += 1
 		INFORMATION.coin -= 2
 		INFORMATION.money[0] -= 1
+		return True
+	else:
+		return False
+
+def buy_blob():
+	if INFORMATION.coin >= 2 and INFORMATION.money[2] >= 1:
+		INFORMATION.coin -= 2
+		INFORMATION.money[2] -= 1
+		blob = Actor(building_list[0].x + 1, building_list[0].y + 1, constants.S_CREATURE)
+		ally_list.append(blob)
 		return True
 	else:
 		return False
