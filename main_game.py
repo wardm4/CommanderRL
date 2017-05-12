@@ -26,9 +26,23 @@ class Actor:
 		SURFACE_MAIN.blit(self.sprite, (self.x*constants.CELL_WIDTH, self.y*constants.CELL_HEIGHT))
 
 	def move(self, dx, dy):
-		if (GAME_MAP[self.x + dx][self.y + dy].block_path == False) and (self.x < constants.MAP_WIDTH - 1):
+		if (GAME_MAP[self.x + dx][self.y + dy].block_path == False) and (self.x < constants.MAP_WIDTH - 1) and not is_ally_here(self.x + dx, self.y + dy):
 			self.x += dx
 			self.y += dy
+			return True
+		else:
+			return False
+
+def is_ally_here(x, y):
+	tmp = 0
+	for a in ally_list:
+		if (x, y) == (a.x, a.y):
+			tmp += 1
+
+	if tmp > 0:
+		return True
+	else:
+		return False
 
 
 class Information:
@@ -293,7 +307,7 @@ def game_initialize():
 
 	pygame.init()
 
-	SURFACE_MAIN = pygame.display.set_mode( (constants.GAME_WIDTH + 400, constants.GAME_HEIGHT) )
+	SURFACE_MAIN = pygame.display.set_mode( (constants.GAME_WIDTH + 400, constants.GAME_HEIGHT), pygame.FULLSCREEN )
 
 	GAME_MAP = map_create()
 
@@ -319,18 +333,20 @@ def game_handle_keys():
 			return "Quit"
 
 		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_ESCAPE:
+				return "Quit"
 			if event.key == pygame.K_UP or event.key == pygame.K_w:
-				PLAYER.move(0, -1)
-				return "Action"
+				if PLAYER.move(0, -1):
+					return "Action"
 			elif event.key == pygame.K_DOWN or event.key == pygame.K_s:
-				PLAYER.move(0, 1)
-				return "Action"
+				if PLAYER.move(0, 1):
+					return "Action"
 			elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-				PLAYER.move(1, 0)
-				return "Action"
+				if PLAYER.move(1, 0):
+					return "Action"
 			elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
-				PLAYER.move(-1, 0)
-				return "Action"
+				if PLAYER.move(-1, 0):
+					return "Action"
 			elif event.key == pygame.K_b:
 				if INFORMATION.coin >= 4 and is_legit(PLAYER.x, PLAYER.y):
 					build()
