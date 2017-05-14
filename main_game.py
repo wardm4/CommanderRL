@@ -47,7 +47,7 @@ def is_ally_here(x, y):
 
 class Information:
 
-	def __init__(self, res_list = [0,0,0], money = [0,0,0], time = 0, actions = 3, workers = 0, fov = True, coin = 4, which_menu = 0, terra = 0):
+	def __init__(self, res_list = [0,0,0], money = [0,0,0], time = 0, actions = 3, workers = 0, fov = True, coin = 4, which_menu = 0, terra = 0, order = 0):
 		self.res_list = res_list
 		self.money = money
 		self.time = time
@@ -57,6 +57,7 @@ class Information:
 		self.coin = coin
 		self.which_menu = which_menu
 		self.terra = terra
+		self.order = order
 
 
 
@@ -147,6 +148,7 @@ def draw_game():
 
 	PLAYER.draw()
 	draw_stats(SURFACE_MAIN)
+
 	if INFORMATION.which_menu == 0:
 		draw_purchases(SURFACE_MAIN)
 	else:
@@ -154,6 +156,9 @@ def draw_game():
 
 	if INFORMATION.terra == 1:
 		draw_terra_menu(SURFACE_MAIN)
+
+	if INFORMATION.order == 1:
+		draw_order_menu(SURFACE_MAIN)
 
 	pygame.display.flip()
 
@@ -225,7 +230,7 @@ def draw_actions(display_surface):
 	ren = constants.STATS_FONT.render("Actions:", 0, constants.COLOR_WHITE)
 	display_surface.blit(ren, (constants.GAME_WIDTH + 10, 180))
 
-	for i in range(3):
+	for i in range(4):
 		if is_menu_item(mouse[0], mouse[1], i):
 			pygame.draw.rect(display_surface, constants.COLOR_GREY, (constants.GAME_WIDTH + 10, 210 + i*30, 350, 25))
 
@@ -238,6 +243,9 @@ def draw_actions(display_surface):
 	ren = constants.STATS_FONT.render("t. Terraform (8C)", 0, constants.COLOR_WHITE)
 	display_surface.blit(ren, (constants.GAME_WIDTH + 10, 270))
 
+	ren = constants.STATS_FONT.render("o. Give Order", 0, constants.COLOR_WHITE)
+	display_surface.blit(ren, (constants.GAME_WIDTH + 10, 300))
+
 def draw_terra_menu(display_surface):
 
 	ren = constants.STATS_FONT.render("a. Wheat", 0, constants.COLOR_WHITE)
@@ -247,6 +255,17 @@ def draw_terra_menu(display_surface):
 	display_surface.blit(ren, (constants.GAME_WIDTH/2, 240))
 
 	ren = constants.STATS_FONT.render("c. Diamond", 0, constants.COLOR_WHITE)
+	display_surface.blit(ren, (constants.GAME_WIDTH/2, 270))
+
+def draw_order_menu(display_surface):
+
+	ren = constants.STATS_FONT.render("a. Attack", 0, constants.COLOR_WHITE)
+	display_surface.blit(ren, (constants.GAME_WIDTH/2, 210))
+
+	ren = constants.STATS_FONT.render("b. Retreat", 0, constants.COLOR_WHITE)
+	display_surface.blit(ren, (constants.GAME_WIDTH/2, 240))
+
+	ren = constants.STATS_FONT.render("c. Hold Position", 0, constants.COLOR_WHITE)
 	display_surface.blit(ren, (constants.GAME_WIDTH/2, 270))
 
 
@@ -261,6 +280,8 @@ def game_main_loop():
 
 		if INFORMATION.terra == 1:
 			handle_terraform_keys()
+		elif INFORMATION. order == 1:
+			handle_action_keys()
 		else:
 			what_happened = game_handle_keys()
 
@@ -362,6 +383,8 @@ def game_handle_keys():
 					return "Action"
 			elif event.key == pygame.K_t:
 				terraform()
+			elif event.key == pygame.K_o:
+				order()
 			elif event.key == pygame.K_TAB:
 				INFORMATION.which_menu = (INFORMATION.which_menu + 1) % 2
 
@@ -386,6 +409,10 @@ def game_handle_keys():
 			if terraform():
 				return "Pause"
 
+		if is_menu_item(mouse[0], mouse[1], 3) and leftclick and INFORMATION.which_menu == 1:
+			order()
+			return "Pause"
+
 
 def buy_worker():
 	if INFORMATION.coin >= 2 and INFORMATION.money[0] >= 1:
@@ -400,7 +427,13 @@ def buy_blob():
 	if INFORMATION.coin >= 2 and INFORMATION.money[2] >= 1:
 		INFORMATION.coin -= 2
 		INFORMATION.money[2] -= 1
-		blob = Actor(building_list[0].x + 1, building_list[0].y + 1, constants.S_CREATURE)
+		badspot = True
+		while badspot:
+			a = random.randint(-1, 1)
+			b = random.randint(-1, 1)
+			if not is_ally_here(building_list[0].x + a, building_list[0].y + b) and is_legit(building_list[0].x + a, building_list[0].y + b):
+				badspot = False
+		blob = Actor(building_list[0].x + a, building_list[0].y + b, constants.S_CREATURE)
 		ally_list.append(blob)
 		return True
 	else:
@@ -423,7 +456,7 @@ def is_legit(x, y):
 			for dy in [-1, 0, 1]:
 				for b in building_list:
 					legit_coords.append(((b.x + dx), (b.y + dy)))
-		if (x,y) in legit_coords:
+		if (x,y) in legit_coords and GAME_MAP[x][y].block_path == False:
 			return True
 		else:
 			return False
@@ -458,9 +491,11 @@ def terraform():
 	else:
 		return False
 
+def order():
+	INFORMATION.order = 1
+
 def handle_terraform_keys():
 	events_list = pygame.event.get()
-	mouse = pygame.mouse.get_pos()
 
 	for event in events_list:
 		if event.type == pygame.KEYDOWN:
@@ -473,6 +508,26 @@ def handle_terraform_keys():
 			elif event.key == pygame.K_c:
 				GAME_MAP[PLAYER.x][PLAYER.y].resource = "diamond"
 				INFORMATION.terra = 0
+
+def handle_action_keys():
+	events_list = pygame.event.get()
+	heard = get_shout_tiles()
+
+	for event in events_list:
+		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_a:
+				for a in ally_list:
+					if (a.x, a.y) in heard:
+						a.move(1, 1)
+				INFORMATION.order = 0
+
+def get_shout_tiles():
+	tile_list = []
+	for dx in range(-2, 2):
+		for dy in range(-2, 2):
+			tile_list.append((PLAYER.x + dx, PLAYER.y + dy))
+	return tile_list
+
 
 
 if __name__ == '__main__':
