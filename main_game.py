@@ -21,6 +21,7 @@ class Actor:
 		self.y = y
 		self.sprite = sprite
 		self.hp = hp
+		self.ordered = 0
 
 	def draw(self):
 		SURFACE_MAIN.blit(self.sprite, (self.x*constants.CELL_WIDTH, self.y*constants.CELL_HEIGHT))
@@ -32,6 +33,10 @@ class Actor:
 			return True
 		else:
 			return False
+
+	def ai_update(self):
+		self.x += 1
+		self.y += 1
 
 def is_ally_here(x, y):
 	tmp = 0
@@ -159,8 +164,14 @@ def draw_game():
 
 	if INFORMATION.order == 1:
 		draw_order_menu(SURFACE_MAIN)
+		draw_shade()
 
 	pygame.display.flip()
+
+def draw_shade():
+	shade_list = get_shout_tiles()
+	for t in shade_list:
+		SURFACE_MAIN.blit(constants.S_SHADE, (t[0] * constants.CELL_WIDTH, t[1] * constants.CELL_HEIGHT))
 
 
 def draw_map(map_to_draw):
@@ -295,6 +306,7 @@ def game_main_loop():
 				INFORMATION.time += 1
 				INFORMATION.actions = 3
 				update_resources()
+				update_ai()
 			else:
 				INFORMATION.actions -= 1
 
@@ -319,6 +331,11 @@ def mining_resources():
 def update_resources():
 	INFORMATION.money = [INFORMATION.money[i] + INFORMATION.res_list[i] for i in range(3)]
 	INFORMATION.coin += INFORMATION.workers
+
+def update_ai():
+	for a in ally_list:
+		if a.ordered == 1:
+			a.ai_update()
 
 
 def game_initialize():
@@ -493,6 +510,9 @@ def terraform():
 
 def order():
 	INFORMATION.order = 1
+	for a in ally_list:
+		if (a.x, a.y) in get_shout_tiles():
+			a.ordered = 1
 
 def handle_terraform_keys():
 	events_list = pygame.event.get()
@@ -523,8 +543,8 @@ def handle_action_keys():
 
 def get_shout_tiles():
 	tile_list = []
-	for dx in range(-2, 2):
-		for dy in range(-2, 2):
+	for dx in range(-2, 3):
+		for dy in range(-2, 3):
 			tile_list.append((PLAYER.x + dx, PLAYER.y + dy))
 	return tile_list
 

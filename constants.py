@@ -28,6 +28,7 @@ S_TREE = pygame.image.load("data/tree.png")
 S_ORE = pygame.image.load("data/ore.png")
 S_DIAMOND = pygame.image.load("data/diamond.png")
 S_CREATURE = pygame.image.load("data/creature.png")
+S_SHADE = pygame.image.load("data/yellowshade.png")
 
 #FONTS
 
